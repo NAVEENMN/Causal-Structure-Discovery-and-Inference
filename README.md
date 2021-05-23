@@ -26,4 +26,5 @@ Some examples, include discovering astronomical objects through observational da
 ## Acknowledgement and References
 * [Introduction to foundations of Causal Discovery](https://link.springer.com/article/10.1007/s41060-016-0038-6)
 * [Review of Causal Discovery Methods Based on Graphical Models](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6558187/)
+* [Dynamic Relational Inference in Multi-Agent Trajectories](https://arxiv.org/abs/2007.13524)
 * [Amortized Causal Discovery](https://arxiv.org/abs/2006.10833)
