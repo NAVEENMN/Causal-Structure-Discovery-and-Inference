@@ -1,4 +1,6 @@
 # Causal Structure Discovery and Inference
+===========================================
+
 ## Abstract
 Causal Structure Discovery (CSD) is the problem of identifying causal relationships from large quantities of data through computational methods. 
 Causality or Causation is defined as a relationship between two events, states, process or objects such that changes in one event, state, process or object lead to changes in another. 
@@ -12,6 +14,8 @@ In systems like these studies are conducted purely based on observational data.
 Extracting causal structure through these observational data while adjusting for confounding has been a challenge for many scientific disciplines. 
 Many machine learning methods have been proposed for this problem but they are largely based on associations. 
 In this article we will explore the methods and challenges involved in CSD and also experiment regression based methods to extract underlying causal structure and infer future states of a given system.
+
+![causal interactions](media/dyari.gif?raw=true "causal interactions")
 
 ## Introduction
 Causation is a direct effect between variable X and Y that remains after adjusting for confounding. Confounding can be observed or unobserved. 
