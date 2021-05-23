@@ -1,4 +1,5 @@
-<!-- Abstract -->
+# Causal Structure Discovery and Inference
+## Abstract
 Causal Structure Discovery (CSD) is the problem of identifying causal relationships from large quantities of data through computational methods. 
 Causality or Causation is defined as a relationship between two events, states, process or objects such that changes in one event, state, process or object lead to changes in another. 
 In general these events, states, process or objects are represented by variables such as X & Y. The key difference between association and causation lies in the potential of confounding. 
@@ -12,7 +13,7 @@ Extracting causal structure through these observational data while adjusting for
 Many machine learning methods have been proposed for this problem but they are largely based on associations. 
 In this article we will explore the methods and challenges involved in CSD and also experiment regression based methods to extract underlying causal structure and infer future states of a given system.
 
-<!-- Introduction -->
+## Introduction
 Causation is a direct effect between variable X and Y that remains after adjusting for confounding. Confounding can be observed or unobserved. 
 Since the 17th century modern science, we have had two kinds of scientific methods for discovering causes. 
 The first method involved manipulating and varying features of a system to see what other features do or do not change. 
@@ -22,5 +23,7 @@ The other scientific methods for discovering causes involved observing the varia
 In these methods observational data will be collected for a system and just by observing who different attributes of a system changes causal connections can be established between different parts of the system. 
 Some examples, include discovering astronomical objects through observational data or connecting weather patterns through remote sensing data.
 
-<!-- Acknowledgement -->
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
+## Acknowledgement and References
+* [Introduction to foundations of Causal Discovery](https://link.springer.com/article/10.1007/s41060-016-0038-6)
+* [Review of Causal Discovery Methods Based on Graphical Models](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6558187/)
+* [Amortized Causal Discovery](https://arxiv.org/abs/2006.10833)
