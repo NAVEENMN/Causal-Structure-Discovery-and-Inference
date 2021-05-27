@@ -24,26 +24,35 @@ class Data:
 
     def get_batch(self, mode='train'):
         x, y = [], []
-        if mode == 'train':
-            trajectory_ids = random.sample(range(0, len(self.train)), self.batch_size)
-        else:
-            trajectory_ids = random.sample(range(0, len(self.test)), self.batch_size)
 
-        # Sample a random observations
+        batch = self.train if mode == 'train' else self.test
+
+        # Sample a random trajectories
+        _x, _y = [], []
+        trajectory_ids = random.sample(range(0, len(batch)), self.batch_size)
+        observations = []
         for _id in trajectory_ids:
             positions = self.train.iloc[_id].trajectories.positions
-            index = random.randint(0, len(positions)-observation_length)
-            observations = positions.iloc[index:index+observation_length+1]
-            _reshape = lambda _x: np.reshape(_x.to_numpy(), (1, particles*2))
-            _x = [_reshape(observations.iloc[i]) for i in range(observation_length)]
-            _y = [_reshape(observations.iloc[-1])]
-            x.append(_x)
-            y.append(_y)
-        print(x)
-        x = np.reshape(x, (self.batch_size, 1, particles*2))
-        y = np.reshape(x, (self.batch_size, 1, particles*2))
+            # random observation point
+            index = random.randint(0, (len(positions)-(observation_length+2)))
+            # make an observation
+            observation = positions.iloc[index:index+observation_length+1]
+            observations.append(observation)
 
-        return x, y
+        _reshape = lambda _x: np.reshape(_x.to_numpy(), (1, particles * 2))
+
+        batching = dict()
+        for i, obs in enumerate(observations):
+            #print(f'observation {i}')
+            for time_stamp in range(observation_length+1):
+                #print(obs.iloc[time_stamp])
+                if time_stamp not in batching:
+                    batching[time_stamp] = []
+                batching[time_stamp].append(_reshape(obs.iloc[time_stamp]))
+
+        X = [np.reshape(np.asarray(batching[time_stamp]), (-1, particles*2)) for time_stamp in range(observation_length)]
+        Y = [np.reshape(np.asarray(batching[observation_length]), (-1, particles*2))]
+        return X, Y
 
 
 class Net(torch.nn.Module):
@@ -59,7 +68,7 @@ class Net(torch.nn.Module):
         for i in x:
             # Step through the sequence one element at a time.
             # after each step, hidden contains the hidden state.
-            out, self.hidden = self.lstm(i.view(1, 1, -1), self.hidden)
+            out, self.hidden = self.lstm(i.view(3, 1, -1), self.hidden)
         return out
 
 
@@ -85,7 +94,8 @@ class Model(Net):
 
     def train(self):
         entry = []
-        data = Data(batch_size=3)
+        batch_size = 3
+        data = Data(batch_size=batch_size)
         for step in range(100):
             X, Y = data.get_batch()
             #print(X[0].shape)
