@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot
+import matplotlib.pyplot as plt
 
 time_slice = 4
 particles = 5
@@ -18,7 +19,7 @@ print(PATH)
 saved_path = os.path.join(PATH, 'saved')
 
 class Data:
-    def __init__(self, batch_size=2, observation_length=10):
+    def __init__(self, batch_size=2, observation_length=20):
         self.data = pd.read_pickle('dyari.pkl')
         self.train_data = self.data.sample(frac=0.8, random_state=200)
         self.test_data = self.data.drop(self.train_data.index)
@@ -77,7 +78,7 @@ class Model(Net):
         super().__init__()
         self.criterion = torch.nn.MSELoss(reduction='sum')
         self.optimizer = torch.optim.SGD(self.parameters(),
-                                         lr=0.001,
+                                         lr=0.01,
                                          momentum=0.9)
 
     def loss(self, y_prediction, y_real):
@@ -110,12 +111,7 @@ class Model(Net):
             entry.append({'time_step': step, 'loss': train_loss.item(), 'type': 'train'})
 
             if step % 10 == 0:
-                torch.save({
-                    'epoch': step,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': self.optimizer.state_dict(),
-                    'loss': train_loss.item()
-                }, saved_path)
+                torch.save(model.state_dict(), saved_path)
 
 
         sns.lineplot(data=pd.DataFrame(entry), x='time_step', y='loss', hue='type')
@@ -125,19 +121,84 @@ class Model(Net):
 model = Model()
 model.train_on_observations()
 
-# Print model's state_dict
-print("Model's state_dict:")
-for param_tensor in model.state_dict():
-    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
-# Print optimizer's state_dict
-print("Optimizer's state_dict:")
-for var_name in model.optimizer.state_dict():
-    print(var_name, "\t", model.optimizer.state_dict()[var_name])
+def create_gif():
+    """
+    This function generates a gif to visualize the trajectory of the particles.
+    :return:
+    """
+    import os
+    import glob
+    from PIL import Image
 
-data = Data(batch_size=3)
-X, Y = data.get_batch()
-y_pred = model.predict_next_position(X)
-print(Y)
-print(y_pred)
+    fp_in = "/home/tadashi/Documents/plots/timestep_*.png"
+    fp_out = "/home/tadashi/Documents/plots/dyari.gif"
+
+    model = Model()
+    model.load_state_dict(torch.load(saved_path))
+
+    init_position = np.random.randn(2, particles) * 0.1
+    position = np.reshape(init_position, (1, 1, particles * 2))
+
+    traj_size = 100
+
+    for time_step in range(0, traj_size):
+
+        position = model.predict_next_position(x=position)
+        pos = position.detach().numpy()
+        pos = np.reshape(pos, (2, particles))
+
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharey=False, sharex=False)
+        axes[0].set_title('Position in space')
+        axes[1].set_title('Causal Graph')
+
+        fig.suptitle(f'Timestep {time_step}')
+        entries = []
+        for particle_id in range(0, pos.shape[-1]):
+            data = {'particle': particle_id,
+                    'x coordinate': pos[0, particle_id],
+                    'y coordinate': pos[1, particle_id]}
+            entries.append(data)
+        pdframe = pd.DataFrame(entries)
+
+        pl = sns.scatterplot(data=pdframe, x='x coordinate', y='y coordinate', hue='particle', ax=axes[0])
+        pl.set_ylim(-1.0 * 5, 5)
+        pl.set_xlim(-1.0 * 5, 5)
+        _path = '/home/tadashi/Documents/plots'
+        plt.savefig(f"{_path}/timestep_{time_step}.png")
+        plt.clf()
+
+    # ref: https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#gif
+    _path = '/home/tadashi/Documents/plots'
+    img, *imgs = [Image.open(f"{_path}/timestep_{i}.png") for i in range(0, traj_size)]
+    img.save(fp=fp_out, format='GIF', append_images=imgs, save_all=True, duration=10, loop=0)
+
+    # delete all png files.
+    for f in glob.glob(fp_in):
+        os.remove(f)
+
+def generate_trajectory():
+    model = Model()
+    model.load_state_dict(torch.load(saved_path))
+
+    init_position = np.random.randn(2, particles) * 0.1
+    position = np.reshape(init_position, (1, 1, particles * 2))
+    traj_size = 100
+    for i in range(0, traj_size):
+        position = model.predict_next_position(x=position)
+        pos = position.detach().numpy()
+        pos = np.reshape(pos, (2, particles))
+        entries = []
+        for particle_id in range(0, pos.shape[-1]):
+            data = {'particle': particle_id,
+                    'x coordinate': pos[0, particle_id],
+                    'y coordinate': pos[1, particle_id]}
+            entries.append(data)
+            pdframe = pd.DataFrame(entries)
+
+    print(pdframe)
+
+create_gif()
+#generate_trajectory()
+
 
