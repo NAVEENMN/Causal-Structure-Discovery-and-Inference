@@ -4,7 +4,7 @@
 import time
 import argparse
 import pandas as pd
-from synthetic_sim import Spring
+from simulations import spring_particle_system
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num-sim', type=int, default=100,
@@ -40,7 +40,7 @@ def generate_data_schema():
     }
 
     df = pd.DataFrame(schema).set_index('label')
-    df.to_pickle('data_schema.pkl')
+    df.to_pickle('data/data_schema.pkl')
     print(f"Data schema saved to schema.pkl")
 
 
@@ -67,7 +67,7 @@ def generate_data(args, simulation):
         'simulation_id': [f'simulation_{i}' for i in range(args.num_sim)]
     }
     df = pd.DataFrame(data).set_index('simulation_id')
-    df.to_pickle('dyari.pkl')
+    df.to_pickle('data/dyari.pkl')
     print(f"Simulations saved to dyari.pkl")
     print("Creating gif for last trajectory.")
     simulation.create_gif()
@@ -75,9 +75,8 @@ def generate_data(args, simulation):
 
 def main():
     args = parser.parse_args()
-    # dynamics='static' generates fixed causal graph
-    # dynamics='periodic' generates periodically varying causal graph
-    simulation = Spring(num_particles=args.n_particles)
+    simulation = spring_particle_system.System(num_particles=args.n_particles)
+    # Static dynamics uses fixed or static causal graph, periodic uses time varying causal graph.
     simulation.set_dynamics(dynamics='static')
     generate_data(args=args, simulation=simulation)
     generate_data_schema()

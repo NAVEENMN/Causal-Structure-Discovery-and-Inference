@@ -11,7 +11,8 @@ import logging
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
-class Spring:
+
+class System:
 	def __init__(self, num_particles=2, min_steps=50, max_steps=200):
 		self.num_particles = num_particles
 		self.interaction_strength = 0.1
@@ -199,8 +200,8 @@ class Spring:
 				self.velocities.append(_velocity)
 				self.edges.append(_edge)
 
-			# If causal graph is not static, flip causal edges when counter turns zero
-			if self.dynamics != 'static':
+			# If causal graph is periodic, flip causal edges when counter turns zero
+			if self.dynamics == 'periodic':
 				edges_counter -= 1
 				change_mask = np.where(edges_counter == 0, 1, 0)
 				if np.any(change_mask):
@@ -354,7 +355,7 @@ def plot(data_frame):
 	edges = data_frame.edges
 	last_edges = edges[0]
 
-	fig, axes = plt.subplots(1, 3, figsize=(20, 6), sharey=False, sharex=False)
+	fig, axes = plt.subplots(1, 3, figsize=(20, 6))
 	axes[0].set_title('Position')
 	axes[1].set_title('Velocity')
 	axes[2].set_title('Causality')
@@ -368,7 +369,7 @@ def plot(data_frame):
 
 
 if __name__ == '__main__':
-	sim = Spring(num_particles=4, dynamics='static', min_steps=500, max_steps=1000)
+	sim = System(num_particles=4, min_steps=500, max_steps=1000)
 	t = time.time()
 	data_frame = sim.sample_trajectory(total_time_steps=10000, sample_freq=50)
 	#plot(data_frame)
