@@ -1,3 +1,6 @@
 checkpoints
 data
 test
+.idea/
+.ipynb_checkpoints/
+venv
