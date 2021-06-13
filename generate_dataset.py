@@ -78,14 +78,9 @@ def generate_data(args, simulation, save_loc='data/simulation_test'):
 
 def main():
     args = parser.parse_args()
-    simulation = spring_particle_system.System(num_particles=args.n_particles, mode='manual')
+    simulation = spring_particle_system.System(num_particles=args.n_particles)
     # Static dynamics uses fixed or static causal graph, periodic uses time varying causal graph.
     simulation.set_dynamics(dynamics='static')
-    _edges = [[0, 0, 0.5], [0, 0, 0], [0.5, 0, 0]]
-    simulation.set_static_edges(edges=_edges)
-    _init_vel = np.asarray([[0.3, 0.00001, 0.23], [0.21, -0.00001, 0.5]])
-    simulation.set_init_velocity(init_vel=_init_vel)
-    #simulation.set_springs(spring_types=[0.5, 0.2, 0.0], spring_prob=[0.5, 0.0, 0.5])
     generate_data(args=args, simulation=simulation)
 
 

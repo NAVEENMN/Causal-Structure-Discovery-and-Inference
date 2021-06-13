@@ -28,8 +28,8 @@ class System:
 		self.loc_std = .5
 		self.vel_norm = .5
 		self.noise_var = 0.
-		self._spring_prob = []
-		self._spring_types = []
+		self._spring_prob = [0.1, 0.1, 0.2, 0.5, 0.1]
+		self._spring_types = np.array([0.0, 0.2, 0.5, 0.7, 1.])
 		self._delta_T = 0.001
 		self._max_F = 0.1 / self._delta_T
 		
