@@ -4,6 +4,49 @@ import tigramite
 from tigramite import data_processing as pp
 
 
+class CausalDiscovery(object):
+    def __init__(self):
+        self.num_of_variables = 0
+        self._variables = [f'$X^{i}$'for i in range(self.num_of_variables*2)]
+        self._data = None
+        self.data_frame = None
+
+    def set_num_of_variables(self, num_of_variables=0):
+        self.num_of_variables = num_of_variables
+        self._variables = [f'$X^{i}$'for i in range(num_of_variables)]
+
+    def get_sample_observations(self, t=1000):
+        np.random.seed(42)
+        links_coeffs = {0: [((0, -1), 0.7), ((1, -1), -0.8)],
+                        1: [((1, -1), 0.8), ((3, -1), 0.8)],
+                        2: [((2, -1), 0.5), ((1, -2), -0.5), ((3, -3), 0.6)],
+                        3: [((3, -1), 0.4)]}
+        _data, true_parents_neighbours = pp.var_process(links_coeffs, T=t)
+        self._set_variables(variables=[f'$X^{i}$'for i in range(len(links_coeffs))])
+        self.set_data(_data)
+        return self.data_frame
+
+    def _set_variables(self, variables):
+        self._variables = variables
+
+    def set_data(self, _data):
+        self._data = _data
+        self.data_frame = pp.DataFrame(self._data, datatime=np.arange(len(self._data)), var_names=self._variables)
+        return self.data_frame
+
+    def get_variables(self):
+        return self._variables
+
+    def plot_time_series(self):
+        from tigramite import plotting as tp
+        tp.plot_timeseries(dataframe=self.data_frame)
+
+    def pcmci(self, conditional_independence_test):
+        from tigramite.pcmci import PCMCI
+        return PCMCI(dataframe=self.data_frame, cond_ind_test=conditional_independence_test, verbosity=1)
+
+
+
 def pca_eigenvals(d):
     """
     Compute the eigenvalues of the covariance matrix of the data d. the covariance matrix is computed as d * d^T.

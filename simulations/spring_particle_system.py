@@ -13,21 +13,23 @@ logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
 class System:
-	def __init__(self, num_particles=2, min_steps=50, max_steps=200):
+	def __init__(self, num_particles=2, min_steps=50, max_steps=200, mode='random'):
 		self.num_particles = num_particles
 		self.interaction_strength = 0.1
 		self.min_steps = min_steps
 		self.max_steps = max_steps
 
 		self.dynamics = None
+		self.mode = mode
+		self.static_edges = []
+		self.static_init_velocity = []
 
 		self.box_size = 5.
 		self.loc_std = .5
 		self.vel_norm = .5
 		self.noise_var = 0.
-		
-		self.spring_prob = [0.1, 0.1, 0.2, 0.5, 0.1]
-		self._spring_types = np.array([0.0, 0.2, 0.5, 0.7, 1.])
+		self._spring_prob = []
+		self._spring_types = []
 		self._delta_T = 0.001
 		self._max_F = 0.1 / self._delta_T
 		
@@ -36,6 +38,16 @@ class System:
 		self.edges = []
 		self.edge_counter = None
 		self.columns = []
+
+	def set_static_edges(self, edges):
+		self.static_edges = edges
+
+	def set_init_velocity(self, init_vel):
+		self.static_init_velocity = init_vel
+
+	def set_springs(self, spring_prob, spring_types):
+		self._spring_prob = spring_prob
+		self._spring_types = spring_types
 
 	def set_dynamics(self, dynamics):
 		if dynamics == 'static':
@@ -101,7 +113,7 @@ class System:
 		:return: initial position and velocity
 		"""
 		init_position = np.random.randn(2, self.num_particles) * self.loc_std
-		init_velocity = np.random.randn(2, self.num_particles)
+		init_velocity = self.static_init_velocity if self.mode == 'manual' else np.random.randn(2, self.num_particles)
 
 		# Compute magnitude of this velocity vector and format to right shape
 		v_norm = np.linalg.norm(init_velocity, axis=0)
@@ -133,8 +145,11 @@ class System:
 		This function generates causality graph where particles are treated as nodes.
 		:return: causality graph represented as edges where particles
 		"""
-		# Sample nxn springs _spring_types which each holding a probability spring_prob
-		_edges = np.random.choice(self._spring_types, size=(self.num_particles, self.num_particles), p=self.spring_prob)
+		if self.mode == 'manual':
+			_edges = self.static_edges
+		else:
+			# Sample nxn springs _spring_types which each holding a probability spring_prob
+			_edges = np.random.choice(self._spring_types, size=(self.num_particles, self.num_particles), p=self._spring_prob)
 
 		# Establish symmetry causal interaction
 		_edges = np.tril(_edges) + np.tril(_edges, -1).T
@@ -178,7 +193,7 @@ class System:
 		velocity - current_velocity = dt * F
 		velocity = current_velocity + (self._delta_T * F)
 		'''
-		get_velocity = lambda init_velocity, forces: init_velocity + (self._delta_T * forces)
+		get_velocity = lambda initial_velocity, forces: initial_velocity + (self._delta_T * forces)
 		
 		velocity = get_velocity(init_velocity, init_force_between_particles)
 		current_position = init_position
