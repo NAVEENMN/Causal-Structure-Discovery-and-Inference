@@ -70,21 +70,6 @@ def pca_eigenvals_gf(d):
     return d
 
 
-def gen_t_data():
-    # [((variable_id, time_step), weight)]
-    link_coeffs = {
-        0: [((0, -1), 0.7), ((1, -1), -0.8)],
-        1: [((1, -1), 0.8), ((3, -1), 0.8)],
-        2: [((2, -1), 0.5), ((1, -2), 0.5), ((3, -3), 0.6)],
-        3: [((3, -1), 0.4)]
-    }
-    data, true_parents_neighbours = pp.var_process(link_coeffs, T=100)
-    T, N = data.shape
-
-    var_names = [r'$X^0$', r'$X^1$', r'$X^2$', r'$X^3$']
-    dataframe = pp.DataFrame(data, datatime=np.arange(len(data)), var_names=var_names)
-    return dataframe
-
 
 def conditional_independence_test(dataframe):
     from tigramite.pcmci import  PCMCI
@@ -93,8 +78,3 @@ def conditional_independence_test(dataframe):
     pcmci = PCMCI(dataframe=dataframe, cond_ind_test=parcorr, verbosity=1)
     results = pcmci.run_pcmci(tau_max=2, pc_alpha=None)
     return results
-
-
-data = gen_t_data()
-print(data.values)
-print(conditional_independence_test(dataframe=data))
