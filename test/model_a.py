@@ -5,26 +5,17 @@ from tigramite import data_processing as pp
 from tigramite.pcmci import PCMCI
 from tigramite import plotting as tp
 from tigramite.independence_tests import ParCorr
+from causality import CausalDiscovery
 
 # Load data
-schema = pd.read_pickle('../data/data_schema.pkl')
-data = pd.read_pickle('../data/dyari.pkl')
+schema = pd.read_pickle('../data/simulation_test_schema.pkl')
+data = pd.read_pickle('../data/simulation_test.pkl')
 train = data.sample(frac=0.8, random_state=200)
 test = data.drop(train.index)
-
-# Print data schema
-print(schema)
 
 # All positions
 simulation_sample = train.iloc[0]
 positions = simulation_sample.trajectories.positions
-
-time_step = 0
-print(positions[time_step])
-num_of_particles = positions[time_step].shape[1]
-
-snapshot = np.asarray(positions[time_step]).flatten()
-print(snapshot)
 
 data = []
 for time_step in range(20):
@@ -32,7 +23,13 @@ for time_step in range(20):
     data.append(np.asarray(snapshot))
 data = np.asarray(data)
 
-variable_names = [f'$X^{i}$'for i in range(num_of_particles*2)]
-print(variable_names)
-dataframe = pp.DataFrame(data, datatime=np.arange(len(data)), var_names=variable_names)
-print(dataframe)
+
+cd = CausalDiscovery()
+cd.set_num_of_variables(4*2)
+data_frame = cd.set_data(data)
+print(cd.get_variables())
+
+parcorr = ParCorr(significance='analytic')
+pcmci = PCMCI(dataframe=data_frame, cond_ind_test=parcorr, verbosity=1)
+results = pcmci.run_pcmci(tau_max=2, pc_alpha=None)
+print(results)
