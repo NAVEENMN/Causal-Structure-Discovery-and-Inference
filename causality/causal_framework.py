@@ -4,6 +4,143 @@ import tigramite
 from tigramite import data_processing as pp
 
 
+class CausalGraph(object):
+    def __init__(self):
+        self.mediators_count = 0
+        self.forks = 0
+        self.colliders = 0
+        self.g = nx.DiGraph()
+        self.nodes = {}
+
+    def __repr__(self):
+        return self.g
+
+    def create_a_node(self):
+        _node = f'n_{self.g.number_of_nodes()}'
+        self.g.add_node(_node)
+        mean, sd = np.random.normal(0, 1, 1), 1
+        self.nodes[_node] = (mean, sd)
+        return _node
+
+    # x -> y -> z
+    def _add_a_mediator(self):
+
+        color_code = 'b'
+
+        node = None
+        if self.g.number_of_nodes() != 0:
+            node = random.sample(self.g.nodes(), 1)[0]
+
+        x = self.create_a_node()
+        y = self.create_a_node()
+        z = self.create_a_node()
+
+        if random.randint(0, 1):
+            logging.info('Adding  x->y->z')
+            self.g.add_edge(x, y, color=color_code, weight=random.uniform(0, 1))
+            self.g.add_edge(y, z, color=color_code, weight=random.uniform(0, 1))
+        else:
+            logging.info('Adding  x<-y<-z')
+            self.g.add_edge(z, y, color=color_code, weight=random.uniform(0, 1))
+            self.g.add_edge(y, x, color=color_code, weight=random.uniform(0, 1))
+
+        if node:
+            link = random.sample([x, y, z], 1)[0]
+            if random.randint(0, 1):
+                self.g.add_edge(node, link, color=color_code, weight=random.uniform(0, 1))
+            else:
+                self.g.add_edge(link, node, color=color_code, weight=random.uniform(0, 1))
+
+    # x <- y -> z
+    def _add_a_fork(self):
+        color_code = 'b'
+
+        node = None
+        if self.g.number_of_nodes() != 0:
+            node = random.sample(self.g.nodes(), 1)[0]
+
+        x = self.create_a_node()
+        y = self.create_a_node()
+        z = self.create_a_node()
+
+        logging.info('Adding  x<-y->z')
+        self.g.add_edge(y, x, color=color_code, weight=random.uniform(0, 1))
+        self.g.add_edge(y, z, color=color_code, weight=random.uniform(0, 1))
+        if node:
+            link = random.sample([x, y, z], 1)[0]
+            if random.randint(0, 1):
+                self.g.add_edge(node, link, color=color_code, weight=random.uniform(0, 1))
+            else:
+                self.g.add_edge(link, node, color=color_code, weight=random.uniform(0, 1))
+
+    # x -> y <- z
+    def _add_a_collider(self):
+        color_code = 'b'
+
+        node = None
+        if self.g.number_of_nodes() != 0:
+            node = random.sample(self.g.nodes(), 1)[0]
+
+        x = self.create_a_node()
+        y = self.create_a_node()
+        z = self.create_a_node()
+
+        logging.info('Adding  x->y<-z')
+        self.g.add_edge(x, y, color=color_code, weight=random.uniform(0, 1))
+        self.g.add_edge(z, y, color=color_code, weight=random.uniform(0, 1))
+        if node:
+            link = random.sample([x, y, z], 1)[0]
+            if random.randint(0, 1):
+                self.g.add_edge(node, link, color=color_code, weight=random.uniform(0, 1))
+            else:
+                self.g.add_edge(link, node, color=color_code, weight=random.uniform(0, 1))
+
+    def generate_random_graph(self, m=1, f=1, c=1):
+        for _ in range(m):
+            self._add_a_mediator()
+        for _ in range(f):
+            self._add_a_fork()
+        for _ in range(c):
+            self._add_a_collider()
+
+    def get_edges(self):
+        print(nx.get_edge_attributes(self.g, 'weight'))
+        return self.g.edges()
+
+    def show_graph(self):
+        edges = self.g.edges()
+        colors = nx.get_edge_attributes(self.g, 'color').values()
+        weights = nx.get_edge_attributes(self.g, 'weight').values()
+        pos = nx.circular_layout(self.g)
+        nx.draw(self.g, pos,
+                with_labels=True,
+                edge_color=list(colors),
+                width=list(weights),
+                node_size=500)
+        plt.show()
+
+    def _update_graph(self, _nodes):
+        _edges = nx.get_edge_attributes(self.g, 'weight')
+        for _edge in _edges:
+            # a -> b
+            (a, b) = _edge
+            _nodes[b] += (_edges[_edge] * _nodes[a])
+        return _nodes
+
+    def get_observation(self, n=0):
+        observations = {}
+        # initialize values to nodes
+        sample_var = lambda _mu, _sd: np.random.normal(_mu, _sd, 1)
+        _nodes = {node: sample_var(self.nodes[node][0], self.nodes[node][1]) for node in self.nodes}
+        for step in range(n):
+            _nodes = self._update_graph(_nodes)
+            for node in self.nodes:
+                if node in observations.keys():
+                    observations[node].append(_nodes[node][0])
+                else:
+                    observations[node] = [_nodes[node][0]]
+        return pd.DataFrame(observations)
+
 class CausalDiscovery(object):
     def __init__(self):
         self.num_of_variables = 0
@@ -78,3 +215,4 @@ def conditional_independence_test(dataframe):
     pcmci = PCMCI(dataframe=dataframe, cond_ind_test=parcorr, verbosity=1)
     results = pcmci.run_pcmci(tau_max=2, pc_alpha=None)
     return results
+
