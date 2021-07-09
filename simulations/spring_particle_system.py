@@ -28,8 +28,8 @@ class System:
 		self.loc_std = .5
 		self.vel_norm = .5
 		self.noise_var = 0.
-		self._spring_prob = [0.1, 0.1, 0.2, 0.5, 0.1]
-		self._spring_types = np.array([0.0, 0.2, 0.5, 0.7, 1.])
+		self._spring_prob = [0.4, 0.1, 0.0, 0.1, 0.4]
+		self._spring_types = np.array([0.0, 0.1, 0.5, 0.8, 1.])
 		self._delta_T = 0.001
 		self._max_F = 0.1 / self._delta_T
 		
@@ -318,7 +318,7 @@ class System:
 			pdframe = pd.DataFrame(entries)
 
 			pl = sns.scatterplot(data=pdframe, x='x_cordinate', y='y_cordinate', hue='particle', ax=axes[0])
-			sns.heatmap(self.edges[time_step], vmin=-1.0, vmax=1.0, ax=axes[1])
+			sns.heatmap(self.edges[time_step], vmin=0.0, vmax=1.0, ax=axes[1])
 
 			pl.set_ylim(-5.0, 5.0)
 			pl.set_xlim(-5.0, 5.0)

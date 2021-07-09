@@ -141,6 +141,7 @@ class CausalGraph(object):
                     observations[node] = [_nodes[node][0]]
         return pd.DataFrame(observations)
 
+
 class CausalDiscovery(object):
     def __init__(self):
         self.num_of_variables = 0

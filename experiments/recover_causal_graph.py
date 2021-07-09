@@ -24,7 +24,6 @@ def draw_graph(g, ax=None):
             node_size=500,
             ax=ax)
 
-
 class Node(object):
     def __init__(self, name, value=0.0):
         self.name = name
@@ -250,12 +249,35 @@ def breadth_first_traversal(q, g):
     return
 
 
+def get_particle_data():
+    # Load data
+    schema = pd.read_pickle('../data/simulation_test_schema.pkl')
+    data = pd.read_pickle('../data/simulation_test.pkl')
+    train = data.sample(frac=0.8, random_state=200)
+    test = data.drop(train.index)
+
+    # All positions
+    simulation_sample = train.iloc[0]
+    positions = simulation_sample.trajectories.positions
+    data = []
+    for time_step in reversed(range(20)):
+        snapshot = np.asarray(positions[time_step]).flatten()
+        data.append(snapshot)
+    data = np.asarray(data)
+    return data
+
+
 def main():
-    cg = CausalGraph()
-    cg.generate_random_graph(mediators=3, forks=0, colliders=0)
-    gp = cg.get_graph()
+    data = get_particle_data()
+    col_names = [f'n_{i}' for i in range(data.shape[1])]
+    df = pd.DataFrame(data=data)
+    df.columns = col_names
+
+    #cg = CausalGraph()
+    #cg.generate_random_graph(mediators=3, forks=0, colliders=0)
+    #gp = cg.get_graph()
     # Generate few observations
-    observations = cg.get_observations(n=500)
+    observations = df #cg.get_observations(n=500)
     print(observations.head())
 
     # case a: empty z
@@ -263,10 +285,12 @@ def main():
     pearson_correlation = np.corrcoef(x=_observations)
     #print(pearson_correlation)
 
-    complete_graph = nx.complete_graph(cg.get_node_names())
+    complete_graph = nx.complete_graph(col_names)
+    #complete_graph = nx.complete_graph(cg.get_node_names())
 
     # case a: empty z
-    nodes = nPr(cg.get_node_names(), 2)
+    nodes = nPr(col_names, 2)
+    #nodes = nPr(cg.get_node_names(), 2)
     for (x, y) in nodes:
         corr = np.corrcoef(observations[x], observations[y])
         corr = corr[0][1]
@@ -276,7 +300,8 @@ def main():
             complete_graph.remove_edge(x, y)
 
     # case a: empty z
-    nodes = nPr(cg.get_node_names(), 3)
+    nodes = nPr(col_names, 3)
+    # nodes = nPr(cg.get_node_names(), 3)
     for (x, y, z) in nodes:
         # print(f'Partial correlation between {(x, y)} and {z}')
         df = pd.DataFrame({'x': observations[x], 'y': observations[y], 'z': observations[z]})
@@ -294,7 +319,7 @@ def main():
 
 
 
-    draw_graph(g=cg.get_graph(), ax=axes[0])
+    #draw_graph(g=cg.get_graph(), ax=axes[0])
     draw_graph(g=complete_graph, ax=axes[1])
     #plt.show()
 
