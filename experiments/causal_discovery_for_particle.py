@@ -5,7 +5,8 @@ import networkx as nx
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import logging
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def load_spring_particle_data(time_steps=500):
     # Load data
@@ -16,17 +17,23 @@ def load_spring_particle_data(time_steps=500):
 
     data = []
     graphs = []
+
     # All positions
-    for simulation_id in range(1):
+    for simulation_id in range(5):
+
         simulation_sample = train.iloc[simulation_id]
         positions = simulation_sample.trajectories.positions
         edges = simulation_sample.trajectories.edges
         for time_step in reversed(range(time_steps)):
-            snapshot = np.asarray(positions[time_step]).flatten()
-            print(edges[time_step])
+            try:
+                snapshot = positions[time_step] - positions[time_step-1]
+                snapshot = np.asarray(snapshot).flatten()
+                # print(edges[time_step])
+                data.append(snapshot)
+                graphs.append(edges)
+            except KeyError as e:
+                continue
 
-            data.append(snapshot)
-            graphs.append(edges)
     data = np.asarray(data)
     return data, graphs, schema
 
