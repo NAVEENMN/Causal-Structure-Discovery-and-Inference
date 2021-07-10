@@ -3,9 +3,8 @@
 
 import time
 import argparse
-
-import numpy as np
 import pandas as pd
+import numpy as np
 from simulations import spring_particle_system
 
 parser = argparse.ArgumentParser()
@@ -15,7 +14,7 @@ parser.add_argument('--length', type=int, default=5000,
                     help='Length of trajectory.')
 parser.add_argument('--sample-freq', type=int, default=10,
                     help='How often to sample the trajectory.')
-parser.add_argument('--n-particles', type=int, default=3,
+parser.add_argument('--n-particles', type=int, default=2,
                     help='Number of particles in the simulation.')
 
 
@@ -78,7 +77,7 @@ def generate_data(args, simulation, save_loc='data/simulation_test'):
 
 def main():
     args = parser.parse_args()
-    simulation = spring_particle_system.System(num_particles=args.n_particles)
+    simulation = spring_particle_system.System(num_particles=3)
     # Static dynamics uses fixed or static causal graph, periodic uses time varying causal graph.
     simulation.set_dynamics(dynamics='static')
     generate_data(args=args, simulation=simulation)
