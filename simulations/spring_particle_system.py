@@ -8,12 +8,35 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import logging
+import networkx as nx
+from itertools import permutations
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
-class System:
+class GraphStyle(object):
+	def __init__(self):
+		self.node_color = '#0D0D0D'
+		self.font_color = '#D9D9D9'
+		self.edge_color = '#262626'
+		self.node_size = 800
+
+	def get_node_color(self):
+		return self.node_color
+
+	def get_font_color(self):
+		return self.font_color
+
+	def get_edge_color(self):
+		return self.edge_color
+
+	def get_node_size(self):
+		return self.node_size
+
+
+class System(GraphStyle):
 	def __init__(self, num_particles=2, min_steps=50, max_steps=200, mode='random'):
+		super().__init__()
 		self.num_particles = num_particles
 		self.interaction_strength = 0.1
 		self.min_steps = min_steps
@@ -32,12 +55,17 @@ class System:
 		self._spring_types = np.array([0.0, 0.1, 0.5, 0.8, 1.])
 		self._delta_T = 0.001
 		self._max_F = 0.1 / self._delta_T
-		
+		self.feature_dimension = 2
+
 		self.positions = []
 		self.velocities = []
 		self.edges = []
 		self.edge_counter = None
 		self.columns = []
+
+		self.dimensions = ['x', 'y']
+		self.particle_graph = None
+		self.causal_graph = None
 
 	def set_static_edges(self, edges):
 		self.static_edges = edges
@@ -49,6 +77,37 @@ class System:
 		self._spring_prob = spring_prob
 		self._spring_types = spring_types
 
+	def set_number_of_particles(self, n):
+		self.num_particles = n
+		self.spring_constants = np.zeros(shape=(n, n))
+
+		self.particle_graph = nx.DiGraph()
+		self.causal_graph = nx.DiGraph()
+
+		for i in range(n):
+			self.particle_graph.add_node(f'p{i}')
+			self.causal_graph.add_node(f'p{i}_x')
+			self.causal_graph.add_node(f'p{i}_y')
+
+	def add_spring(self, pa, pb, w):
+		self.particle_graph.add_node(f'p{pa}')
+		self.particle_graph.add_node(f'p{pb}')
+		self.spring_constants[pa][pb] = w
+		self.spring_constants[pb][pa] = w
+
+		# Assumption: Spring co efficients components are all same in all dimensions
+		if self.feature_dimension == 2:
+			self.particle_graph.add_edge(f'p{pa}', f'p{pb}', weight=w)
+			self.particle_graph.add_edge(f'p{pb}', f'p{pa}', weight=w)
+
+			edges = permutations([f'p{pa}_x', f'p{pa}_y', f'p{pb}_x', f'p{pb}_y'])
+			for edge in edges:
+				_a = edge[0].replace('_x', '').replace('_y', '')
+				_b = edge[1].replace('_x', '').replace('_y', '')
+				# Exclude self links
+				if _a != _b:
+					self.causal_graph.add_edge(edge[0], edge[1], weight=w)
+
 	def set_dynamics(self, dynamics):
 		if dynamics == 'static':
 			self.dynamics = 'static'
@@ -58,6 +117,46 @@ class System:
 			logging.warning(f'Unsupported dynamics {dynamics}')
 			logging.info('Setting dynamics to static')
 			self.dynamics = 'static'
+
+	def draw_particle_system_graph(self, axes):
+		axes.set_title('Particle System')
+		weights = nx.get_edge_attributes(self.particle_graph, 'weight').values()
+		# TODO: Add edge labels
+		nx.draw(self.particle_graph,
+				pos=nx.circular_layout(self.particle_graph),
+				with_labels=True,
+				width=list(weights),
+				node_size=self.get_node_size(),
+				node_color=self.get_node_color(),
+				font_color=self.get_font_color(),
+				ax=axes)
+
+	def draw_causal_graph(self):
+		fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+		axes[1].set_title('Causal Graph')
+		weights = nx.get_edge_attributes(self.causal_graph, 'weight').values()
+		# TODO: Add edge labels
+		nx.draw(self.causal_graph,
+				pos=nx.circular_layout(self.causal_graph),
+				with_labels=True,
+				width=list(weights),
+				node_size=self.get_node_size(),
+				node_color=self.get_node_color(),
+				font_color=self.get_font_color(),
+				ax=axes[1])
+		axes[0].set_title('Particle System')
+		weights = nx.get_edge_attributes(self.particle_graph, 'weight').values()
+		# TODO: Add edge labels
+		nx.draw(self.particle_graph,
+				pos=nx.circular_layout(self.particle_graph),
+				with_labels=True,
+				width=list(weights),
+				node_size=self.get_node_size(),
+				node_color=self.get_node_color(),
+				font_color=self.get_font_color(),
+				ax=axes[0])
+		plt.savefig(f"{os.getcwd()}/media/causal_graph.png")
+		plt.clf()
 
 	def get_dynamics(self):
 		return self.dynamics
@@ -72,7 +171,7 @@ class System:
 		self.velocities.clear()
 		self.edges.clear()
 		self.columns.clear()
-		self.edge_counter = self.get_edge_counter(self.min_steps, self.max_steps+1)
+		self.edge_counter = self.get_edge_counter(self.min_steps, self.max_steps + 1)
 		self.columns = [f'particle_{i}' for i in range(self.num_particles)]
 
 	def _clamp(self, loc, vel):
@@ -84,19 +183,19 @@ class System:
 		"""
 		assert (np.all(loc < self.box_size * 3))
 		assert (np.all(loc > -self.box_size * 3))
-		
+
 		over = loc > self.box_size
 		loc[over] = 2 * self.box_size - loc[over]
 		assert (np.all(loc <= self.box_size))
 
 		vel[over] = -np.abs(vel[over])
-		
+
 		under = loc < -self.box_size
 		loc[under] = -2 * self.box_size - loc[under]
 
 		assert (np.all(loc >= -self.box_size))
 		vel[under] = np.abs(vel[under])
-		
+
 		return loc, vel
 
 	def get_edge_counter(self, min_steps, max_steps):
@@ -122,7 +221,7 @@ class System:
 		init_velocity = init_velocity * self.vel_norm / v_norm
 
 		return init_position, init_velocity
-	
+
 	def get_force(self, _edges, current_positions):
 		"""
 		:param _edges: Adjacency matrix representing mutual causality
@@ -139,7 +238,7 @@ class System:
 		_force[_force > self._max_F] = self._max_F
 		_force[_force < -self._max_F] = -self._max_F
 		return _force
-	
+
 	def generate_edges(self):
 		"""
 		This function generates causality graph where particles are treated as nodes.
@@ -149,7 +248,8 @@ class System:
 			_edges = self.static_edges
 		else:
 			# Sample nxn springs _spring_types which each holding a probability spring_prob
-			_edges = np.random.choice(self._spring_types, size=(self.num_particles, self.num_particles), p=self._spring_prob)
+			_edges = np.random.choice(self._spring_types, size=(self.num_particles, self.num_particles),
+									  p=self._spring_prob)
 
 		# Establish symmetry causal interaction
 		_edges = np.tril(_edges) + np.tril(_edges, -1).T
@@ -158,7 +258,7 @@ class System:
 		np.fill_diagonal(_edges, 0)
 
 		return _edges
-	
+
 	def sample_trajectory(self, total_time_steps=10000, sample_freq=10):
 
 		# Reset simulation
@@ -173,7 +273,7 @@ class System:
 
 		# Initialize the first position and velocity from a distribution
 		init_position, init_velocity = self.get_init_pos_velocity()
-		
+
 		# Adding initial position and velocity of particles to trajectory.
 		init_position, init_velocity = self._clamp(init_position, init_velocity)
 		_position = pd.DataFrame(init_position, columns=self.columns, index=index)
@@ -182,10 +282,10 @@ class System:
 		self.positions.append(_position)
 		self.velocities.append(_velocity)
 		self.edges.append(_edge)
-		
+
 		# Compute initial forces between particles.
 		init_force_between_particles = self.get_force(_edges, init_position)
-		
+
 		# Compute new velocity.
 		'''
 		F = m * (dv/dt), for unit mass
@@ -194,18 +294,18 @@ class System:
 		velocity = current_velocity + (self._delta_T * F)
 		'''
 		get_velocity = lambda initial_velocity, forces: initial_velocity + (self._delta_T * forces)
-		
+
 		velocity = get_velocity(init_velocity, init_force_between_particles)
 		current_position = init_position
 
 		edges_counter = self.edge_counter
 
 		for i in range(1, total_time_steps):
-			
+
 			# Compute new position based on current velocity and positions.
 			new_position = current_position + (self._delta_T * velocity)
 			new_position, velocity = self._clamp(new_position, velocity)
-			
+
 			# Adding new position and velocity of particles to trajectory.
 			if i % sample_freq == 0:
 				_position = pd.DataFrame(new_position, columns=self.columns, index=index)
@@ -222,19 +322,19 @@ class System:
 				if np.any(change_mask):
 					new_edges = np.where(_edges == 0, 1.0, 0)
 					_edges = np.where(change_mask == 1, new_edges, _edges)
-					new_counter = self.get_edge_counter(self.min_steps, self.max_steps+1)
+					new_counter = self.get_edge_counter(self.min_steps, self.max_steps + 1)
 					edges_counter = np.where(change_mask == 1, new_counter, edges_counter)
 
 			# Compute forces between particles
 			force_between_particles = self.get_force(_edges, new_position)
-			
+
 			# Compute new velocity based on current velocity and forces between particles.
 			new_velocity = velocity + (self._delta_T * force_between_particles)
-			
+
 			# Update velocity and position
 			velocity = new_velocity
 			current_position = new_position
-			
+
 			# Add noise to observations
 			current_position += np.random.randn(2, self.num_particles) * self.noise_var
 			velocity += np.random.randn(2, self.num_particles) * self.noise_var
@@ -251,7 +351,7 @@ class System:
 			'total_energy': total_energies,
 		}
 		return pd.DataFrame(trajectory)
-	
+
 	def get_energy(self):
 		'''
 		Total Energy = Kinetic Energy (K) + Potential Energy (U)
@@ -259,12 +359,13 @@ class System:
 		Potential Energy (U) = m * g * h: h is distance, g is field, unit mass m
 		:return: energy
 		'''
-		
+
 		# Compute Kinetic Energy for each snap shot
 		# Kinetic energy = (1/2) m * v^2, here assume a unit mass
 		ek = lambda velocity: 0.5 * (velocity ** 2).sum(axis=0)
 		kinetic_energies = [ek(_velocities) for _velocities in self.velocities]
-		kinetic_energies = [pd.DataFrame({'kinetic_energy': ke, 'particles': self.columns}).set_index('particles') for ke in kinetic_energies]
+		kinetic_energies = [pd.DataFrame({'kinetic_energy': ke, 'particles': self.columns}).set_index('particles') for
+							ke in kinetic_energies]
 
 		# Compute Potential Energy at each snap shot
 		# potential energy = m * g * d, here assume a unit mass
@@ -279,13 +380,15 @@ class System:
 				distances = np.sqrt(np.square(position_fill_mat - _pos).sum(axis=1))
 				pe = np.dot(self.edges[time_step][f'particle_{particle_index}'], distances ** 2)
 				_u.append(0.5 * self.interaction_strength * pe)
-			potential_energies.append(pd.DataFrame({'potential_energy': _u, 'particles': self.columns}).set_index('particles'))
+			potential_energies.append(
+				pd.DataFrame({'potential_energy': _u, 'particles': self.columns}).set_index('particles'))
 
 		# Compute total energy of the system
 		total_energies = []
 		for time_step in range(len(potential_energies)):
 			total_en = kinetic_energies[time_step]['kinetic_energy'] + potential_energies[time_step]['potential_energy']
-			total_energies.append(pd.DataFrame({'total_energy': total_en, 'particles': self.columns}).set_index('particles'))
+			total_energies.append(
+				pd.DataFrame({'total_energy': total_en, 'particles': self.columns}).set_index('particles'))
 		kinetic_energies = [_ken.T for _ken in kinetic_energies]
 		potential_energies = [_pen.T for _pen in potential_energies]
 		total_energies = [_ten.T for _ten in total_energies]
@@ -385,9 +488,12 @@ def plot(data_frame):
 
 if __name__ == '__main__':
 	sim = System(num_particles=4, min_steps=500, max_steps=1000)
+	sim.set_number_of_particles(n=2)
 	t = time.time()
 	data_frame = sim.sample_trajectory(total_time_steps=10000, sample_freq=50)
-	#plot(data_frame)
+	# plot(data_frame)
 	sim.create_gif()
+	sim.draw_causal_graph()
+
 	print("Simulation time: {}".format(time.time() - t))
-	#sim.create_gif()
+# sim.create_gif()
