@@ -77,6 +77,9 @@ class System(GraphStyle):
 		self._spring_prob = spring_prob
 		self._spring_types = spring_types
 
+	def get_number_particles(self):
+		return self.num_particles
+
 	def set_number_of_particles(self, n):
 		self.num_particles = n
 		self.spring_constants = np.zeros(shape=(n, n))
@@ -300,6 +303,8 @@ class System(GraphStyle):
 
 		edges_counter = self.edge_counter
 
+		observations = {}
+
 		for i in range(1, total_time_steps):
 
 			# Compute new position based on current velocity and positions.
@@ -339,10 +344,37 @@ class System(GraphStyle):
 			current_position += np.random.randn(2, self.num_particles) * self.noise_var
 			velocity += np.random.randn(2, self.num_particles) * self.noise_var
 
+			if 'time' not in observations:
+				observations['time'] = [int(time.time())]
+			else:
+				observations['time'].append(int(time.time()))
+
+			for m in range(len(_edges)):
+				for n in range(len(_edges[0])):
+					if f's_p{m}_p{n}' not in observations:
+						observations[f's_p{m}_p{n}'] = [_edges[m][n]]
+					else:
+						observations[f's_p{m}_p{n}'].append(_edges[m][n])
+
+			for dim in range(len(velocity)):
+				for pid in range(len(velocity[0])):
+					if dim == 0:
+						if f'v_p{pid}_xdim' not in observations:
+							observations[f'v_p{pid}_xdim'] = [velocity[dim][pid]]
+						else:
+							observations[f'v_p{pid}_xdim'].append(velocity[dim][pid])
+					else:
+						if f'v_p{pid}_ydim' not in observations:
+							observations[f'v_p{pid}_ydim'] = [velocity[dim][pid]]
+						else:
+							observations[f'v_p{pid}_ydim'].append(velocity[dim][pid])
+
 		# Compute energy of the system
 		kinetic_energies, potential_energies, total_energies = self.get_energy()
+
 		# construct data frame
 		trajectory = {
+			'time': int(time.time()),
 			'positions': self.positions,
 			'velocity': self.velocities,
 			'edges': self.edges,
@@ -350,7 +382,10 @@ class System(GraphStyle):
 			'potential_energy': potential_energies,
 			'total_energy': total_energies,
 		}
-		return pd.DataFrame(trajectory)
+
+		_df = pd.DataFrame(data=observations).set_index('time')
+
+		return pd.DataFrame(trajectory), _df
 
 	def get_energy(self):
 		'''
@@ -489,11 +524,13 @@ def plot(data_frame):
 if __name__ == '__main__':
 	sim = System(num_particles=4, min_steps=500, max_steps=1000)
 	sim.set_number_of_particles(n=2)
+	sim.set_static_edges(edges=[[0.0, 1.0], [1.0, 0.0]])
 	t = time.time()
-	data_frame = sim.sample_trajectory(total_time_steps=10000, sample_freq=50)
+	data_frame, df = sim.sample_trajectory(total_time_steps=10000, sample_freq=50)
+	print(df.head())
 	# plot(data_frame)
-	sim.create_gif()
-	sim.draw_causal_graph()
+	#sim.create_gif()
+	#sim.draw_causal_graph()
 
 	print("Simulation time: {}".format(time.time() - t))
 # sim.create_gif()

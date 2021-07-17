@@ -39,34 +39,16 @@ def generate_data_schema(save_loc):
     print(f"Data schema saved to {save_loc}_schema.pkl")
 
 
-def generate_data(args, simulation, save_loc='data/simulation_test'):
-
-    print(f"Generating {args.num_sim} {simulation.get_dynamics()} simulations")
-    trajectories = []
-    particles = []
-    dynamics = []
-
-    for i in range(args.num_sim):
-        t = time.time()
-        data_frame = simulation.sample_trajectory(total_time_steps=args.length, sample_freq=args.sample_freq)
-        trajectories.append(data_frame)
-        # Number of particles are fixed for a given simulation for the current model.
-        particles.append(args.n_particles)
-        dynamics.append(simulation.get_dynamics())
-        print(f"Simulation {i}, time: {time.time() - t}")
-
-    data = {
-        'trajectories': trajectories,
-        'particles': particles,
-        'dynamics': dynamics,
-        'simulation_id': [f'simulation_{i}' for i in range(args.num_sim)]
-    }
-    df = pd.DataFrame(data).set_index('simulation_id')
-    df.to_pickle(f'{save_loc}.pkl')
-    print(f"Simulations saved to {save_loc}.pkl")
-    generate_data_schema(save_loc)
-    print("Creating gif for last trajectory.")
-    simulation.create_gif()
+def generate_data(num_sim, simulation, save_loc='data/simulation_test'):
+    print(f"Generating {num_sim} {simulation.get_dynamics()} simulations")
+    observations = None
+    for i in range(num_sim):
+        _, data_frame = simulation.sample_trajectory(total_time_steps=1000, sample_freq=50)
+        if observations is None:
+            observations = data_frame
+        observations = observations.append(data_frame)
+    observations.to_csv(f'{save_loc}.csv')
+    print(f'Observations of {num_sim} {simulation.get_dynamics()} simulations saved to {save_loc}.csv')
 
 
 class GraphStyle(object):
@@ -164,19 +146,24 @@ class ParticleSystem(GraphStyle):
 
 
 def main():
-    ps = ParticleSystem()
-    ps.set_number_of_particles(n=4)
-    ps.add_spring(pa=0, pb=1, w=0.5)
-    ps.add_spring(pa=0, pb=2, w=1)
+    #ps = ParticleSystem()
+    #ps.set_number_of_particles(n=4)
+    #ps.add_spring(pa=0, pb=1, w=0.5)
+    #ps.add_spring(pa=0, pb=2, w=1)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    #fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    #ps.draw_particle_system_graph(axes=axes[0])
+    #ps.draw_causal_graph(axes=axes[1])
 
-    ps.draw_particle_system_graph(axes=axes[0])
-    ps.draw_causal_graph(axes=axes[1])
+    #plt.show()
 
-    plt.show()
+    _system = spring_particle_system.System(num_particles=3)
+    _system.set_number_of_particles(n=3)
 
-    #simulation = spring_particle_system.System(num_particles=3)
+    number_of_particles = _system.get_number_particles()
+    _system.set_static_edges(edges=np.random.rand(number_of_particles, number_of_particles))
+    generate_data(10, _system)
+
     # Static dynamics uses fixed or static causal graph, periodic uses time varying causal graph.
     #simulation.set_dynamics(dynamics='static')
     #generate_data(args=args, simulation=simulation)w

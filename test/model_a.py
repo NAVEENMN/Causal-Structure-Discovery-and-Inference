@@ -8,24 +8,35 @@ import logging
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
 
-# Load data
-schema = pd.read_pickle('../data/simulation_test_schema.pkl')
-data = pd.read_pickle('../data/simulation_test.pkl')
-train = data.sample(frac=0.8, random_state=200)
-test = data.drop(train.index)
 
-# All positions
-simulation_sample = train.iloc[0]
-positions = simulation_sample.trajectories.positions
+class Data(object):
+    def __init__(self):
+        self.schema = pd.read_pickle('../data/simulation_test_schema.pkl')
+        print(self.schema)
+        self.data = pd.read_pickle('../data/simulation_test.pkl')
 
-data = []
-for time_step in reversed(range(20)):
-    snapshot = np.asarray(positions[time_step]).flatten()
-    data.append(np.asarray(snapshot[:2]))
-data = np.asarray(data)
-print(data)
+    def sample(self):
+        sample = self.data.sample(frac=0.8, random_state=200, tau=20)
+        # All positions
+        simulation_sample = sample.iloc[0]
+        print(simulation_sample.trajectories)
+        print(simulation_sample.trajectories.edges[0])
 
-logging.info(f"Data of shape {data.shape} loaded")
+        for sample
+
+        positions = simulation_sample.trajectories.positions
+        springs_k = simulation_sample.trajectories.positions
+
+
+
+        data = []
+        for time_step in reversed(range(20)):
+            #snapshot = np.asarray(positions[time_step]).flatten()
+            #data.append(np.asarray(snapshot[:2]))
+        data = np.asarray(data)
+
+        print(data)
+        logging.info(f"Data of shape {data.shape} loaded")
 
 
 class CausalDiscovery(object):
@@ -102,7 +113,11 @@ def pca_eigenvals_gf(d):
     return d
 
 
-cd = CausalDiscovery()
-data_frame = cd.set_data(data)
-results = cd.run_conditional_independence_test()
-print(results)
+data = Data()
+data.sample()
+
+#cd = CausalDiscovery()
+#print(data)
+#data_frame = cd.set_data(data)
+#results = cd.run_conditional_independence_test()
+#print(results)

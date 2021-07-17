@@ -140,17 +140,25 @@ class SpringSystem(System):
             :param _edges: Adjacency matrix representing mutual causality
             :param current_positions: current coordinates of all particles
             :return: net forces acting on all particles.
+            TODO: Re verify this force computation
             """
-            force_matrix = - self.interaction_strength * _edges
+            force_matrix = -1 * _edges
             np.fill_diagonal(force_matrix, 0)
             x_cords, y_cords = current_positions[0, :], current_positions[1, :]
-            x_diffs = np.subtract.outer(x_cords, x_cords).reshape(1, self.num_particles, self.num_particles)
-            y_diffs = np.subtract.outer(y_cords, y_cords).reshape(1, self.num_particles, self.num_particles)
+            x_diffs = np.subtract.outer(x_cords, x_cords)
+            y_diffs = np.subtract.outer(y_cords, y_cords)
             force_matrix = force_matrix.reshape(1, self.num_particles, self.num_particles)
+            v = np.concatenate(x_diffs, y_diffs)
             _force = (force_matrix * np.concatenate((x_diffs, y_diffs))).sum(axis=-1)
-            _force[_force > self._max_F] = self._max_F
-            _force[_force < -self._max_F] = -self._max_F
             return _force
+
+        # Initialize the first position and velocity from a distribution
+        init_position, init_velocity = get_init_pos_velocity()
+
+        # Compute initial forces between particles.
+        init_force_between_particles = get_force(self.k, init_position)
+
+        print(init_force_between_particles)
 
 
 def main():
@@ -158,6 +166,7 @@ def main():
     sp.add_particles(num_of_particles=3)
     spring_constants_matrix = np.asarray([[0, 0, 1], [0, 0, 0], [1, 0, 0]])
     sp.add_springs(spring_constants_matrix=spring_constants_matrix)
+    sp.simulate()
 
 
 if __name__ == "__main__":
