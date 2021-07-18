@@ -17,6 +17,9 @@ class Node(object):
     def __repr__(self):
         return f'{self.name}: {self._value}'
 
+    def get_name(self):
+        return self.name
+
     def reset(self):
         _noise = np.random.normal(0.0, 1.0, 1) / 100000.0
         self._value = 0.0 + _noise
@@ -34,28 +37,80 @@ class Node(object):
         self._value += np.asarray(value)
 
 
-class CausalGraph(object):
-    def __init__(self):
-        self.mediators_count = 0
-        self.forks = 0
-        self.colliders = 0
-        self.g = nx.DiGraph()
+class Graph(object):
+    def __init__(self, gh):
+        self.graph = gh
+        self.node_size = 800
+        self.node_color = '#0D0D0D'
+        self.font_color = '#D9D9D9'
+        self.edge_color = '#262626'
+
+    def get_number_of_nodes(self):
+        return self.graph.number_of_nodes()
+
+    def get_random_node(self):
+        node = None
+        if self.graph.number_of_nodes() != 0:
+            node = random.sample(self.graph.nodes(), 1)[0]
+        return node
+
+    def get_source_nodes(self):
+        _nodes = []
+        for node in self.graph.nodes():
+            if self.graph.in_degree(node) == 0:
+                _nodes.append(node)
+        return _nodes
+
+    def get_edge_value(self, node_a, node_b):
+        return self.graph.get_edge_data(node_a, node_b)
+
+    def get_graph(self):
+        return self.graph
+
+    def add_node_to_graph(self, node):
+        self.graph.add_node(node, value=0.0)
+
+    def add_an_edge_to_graph(self, node_a, node_b):
+        self.graph.add_edge(node_a, node_b, color=self.edge_color,
+                            weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
+
+    def draw_graph(self, axes):
+        colors = nx.get_edge_attributes(self.graph, 'color').values()
+        weights = nx.get_edge_attributes(self.graph, 'weight').values()
+        nx.draw(self.graph,
+                pos=nx.circular_layout(self.graph),
+                with_labels=True,
+                edge_color=list(colors),
+                width=list(weights),
+                node_size=500,
+                ax=axes)
+
+
+class CausalGraph(Graph):
+    def __init__(self, gh):
+        super().__init__(gh)
+        self.left_mediators_count = 0
+        self.right_mediators_count = 0
+        self.forks_count = 0
+        self.colliders_count = 0
         self.nodes = {}
 
     def __repr__(self):
-        return self.g
+        return self.get_graph()
+
+    def set_properties(self, left_mediators_count=0,
+                       right_mediators_count=0,
+                       forks_count=0, colliders_count=0):
+        self.left_mediators_count = left_mediators_count
+        self.right_mediators_count = right_mediators_count
+        self.forks_count = forks_count
+        self.colliders_count = colliders_count
 
     def create_a_node(self):
-        _node = f'n_{self.g.number_of_nodes()}'
-        self.g.add_node(_node)
+        _node = f'n_{self.get_number_of_nodes()}'
         self.nodes[_node] = Node(name=_node)
+        self.add_node_to_graph(_node)
         return _node
-
-    def create_an_edge(self, a, b):
-        color_code = 'b'
-        self.g.add_edge(a, b, color=color_code,
-                        weight=np.random.normal(0, 1, 1),
-                        capacity=np.random.normal(0, 1, 1))
 
     def reset(self):
         for node in self.nodes.keys():
@@ -67,102 +122,49 @@ class CausalGraph(object):
     def get_node_names(self):
         return self.g.nodes()
 
-    # x -> y -> z
-    def _add_a_mediator(self):
-
-        color_code = 'b'
-
-        node = None
-        if self.g.number_of_nodes() != 0:
-            node = random.sample(self.g.nodes(), 1)[0]
-
-        x = self.create_a_node()
-        y = self.create_a_node()
-        z = self.create_a_node()
-
-        if random.randint(0, 1):
-            self.create_an_edge(x, y)
-            self.create_an_edge(y, z)
+    def add_an_element(self, element='right_mediator'):
+        _node = self.get_random_node()
+        [x, y, z] = [self.create_a_node() for _ in range(3)]
+        if element == 'right_mediator':
+            # X -> Y -> Z
+            self.add_an_edge_to_graph(x, y)
+            self.add_an_edge_to_graph(y, z)
+        elif element == 'left_mediator':
+            # X <- Y <- Z
+            self.add_an_edge_to_graph(z, y)
+            self.add_an_edge_to_graph(y, x)
+        elif element == 'fork':
+            # X <- Y -> Z
+            self.add_an_edge_to_graph(y, x)
+            self.add_an_edge_to_graph(y, z)
+        elif element == 'collider':
+            # X -> Y <- Z
+            self.add_an_edge_to_graph(x, y)
+            self.add_an_edge_to_graph(z, y)
         else:
-            self.create_an_edge(z, y)
-            self.create_an_edge(y, x)
+            print('Unsupported element')
 
-        if node:
+        if _node:
             link = random.sample([x, y, z], 1)[0]
             if random.randint(0, 1):
-                self.g.add_edge(node, link, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
+                self.add_an_edge_to_graph(_node, link)
             else:
-                self.g.add_edge(link, node, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
+                self.add_an_edge_to_graph(link, _node)
 
-    # x <- y -> z
-    def _add_a_fork(self):
-        color_code = 'b'
+    def generate_random_graph(self):
+        for _ in range(self.left_mediators_count):
+            self.add_an_element(element='left_mediator')
 
-        node = None
-        if self.g.number_of_nodes() != 0:
-            node = random.sample(self.g.nodes(), 1)[0]
+        for _ in range(self.right_mediators_count):
+            self.add_an_element(element='right_mediator')
 
-        x = self.create_a_node()
-        y = self.create_a_node()
-        z = self.create_a_node()
+        for _ in range(self.forks_count):
+            self.add_an_element(element='fork')
 
-        self.g.add_edge(y, x, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-        self.g.add_edge(y, z, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-        if node:
-            link = random.sample([x, y, z], 1)[0]
-            if random.randint(0, 1):
-                self.g.add_edge(node, link, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-            else:
-                self.g.add_edge(link, node, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
+        for _ in range(self.colliders_count):
+            self.add_an_element(element='collider')
 
-    # x -> y <- z
-    def _add_a_collider(self):
-        color_code = 'b'
-
-        node = None
-        if self.g.number_of_nodes() != 0:
-            node = random.sample(self.g.nodes(), 1)[0]
-
-        x = self.create_a_node()
-        y = self.create_a_node()
-        z = self.create_a_node()
-
-        self.g.add_edge(x, y, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-        self.g.add_edge(z, y, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-        if node:
-            link = random.sample([x, y, z], 1)[0]
-            if random.randint(0, 1):
-                self.g.add_edge(node, link, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-            else:
-                self.g.add_edge(link, node, color=color_code, weight=np.random.normal(0, 1, 1), capacity=np.random.normal(0, 1, 1))
-
-    def generate_random_graph(self, mediators=1, forks=1, colliders=1):
-        for _ in range(mediators):
-            self._add_a_mediator()
-        for _ in range(forks):
-            self._add_a_fork()
-        for _ in range(colliders):
-            self._add_a_collider()
-        return self.g
-
-    def get_edges(self):
-        return self.g.edges()
-
-    def get_graph(self):
-        return self.g
-
-    def show_graph(self, ax=None):
-        edges = self.g.edges()
-        colors = nx.get_edge_attributes(self.g, 'color').values()
-        weights = nx.get_edge_attributes(self.g, 'weight').values()
-        pos = nx.circular_layout(self.g)
-        nx.draw(self.g, pos,
-                with_labels=True,
-                edge_color=list(colors),
-                width=list(weights),
-                node_size=500,
-                ax=ax)
-        plt.show()
+        return self.get_graph()
 
     def _update_graph(self, _nodes):
         _edges = nx.get_edge_attributes(self.g, 'weight')
@@ -184,12 +186,13 @@ class CausalGraph(object):
         def depth_first_traversal(node, g):
             v = self.nodes.get(node).get_value()
             for successor in list(g.successors(node)):
-                edge_value = self.g.get_edge_data(node, successor)
+                edge_value = self.get_edge_value(node, successor)
                 w, c = edge_value['weight'], edge_value['capacity']
                 self.nodes.get(successor).update_value((v * w) + c)
                 depth_first_traversal(successor, g)
             return
 
+        """
         def breadth_first_traversal(q, g):
             while q:
                 node = q.pop(0)
@@ -200,6 +203,7 @@ class CausalGraph(object):
                     w, c = edge_value['weight'], edge_value['capacity']
                     self.nodes.get(successor).update_value((v*w)+c)
             return
+        """
 
         """
         q = [
@@ -208,19 +212,20 @@ class CausalGraph(object):
             breadth_first_traversal(q, self.g)
         """
         for variable in independent_variables:
-            depth_first_traversal(variable, self.g)
+            depth_first_traversal(variable)
 
         return self.nodes.values()
+
+    def run(self, id=0):
+        print(f' {id}: Running a breadth first traversal to update node values')
+
 
     def get_observations(self, n=0):
         observations = {}
         self.reset()
 
         # Get all independent variables
-        independent_variables = []
-        for node in self.g.nodes():
-            if self.g.in_degree(node) == 0:
-                independent_variables.append(node)
+        independent_variables = self.get_source_nodes()
 
         for step in range(n):
             self.generate_observation(independent_variables)
@@ -232,9 +237,11 @@ class CausalGraph(object):
             self.reset()
         return pd.DataFrame(observations)
 
+
 def nPr(_set, r):
     from itertools import permutations
     return list(permutations(_set, r))
+
 
 def draw_graph(g, ax=None):
     edges = g.edges()
@@ -247,9 +254,14 @@ def draw_graph(g, ax=None):
             node_size=500,
             ax=ax)
 
+
 def main():
-    cg = CausalGraph()
-    cg.generate_random_graph(mediators=3, forks=0, colliders=0)
+    cg = CausalGraph(nx.DiGraph())
+    cg.set_properties(left_mediators_count=1,
+                      right_mediators_count=1,
+                      forks_count=1,
+                      colliders_count=1)
+    cg.generate_random_graph()
     observations = cg.get_observations(n=500)
     print(observations.head())
 

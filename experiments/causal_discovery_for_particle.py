@@ -8,6 +8,7 @@ import seaborn as sns
 import logging
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
+
 def load_spring_particle_data(time_steps=500):
     # Load data
     schema = pd.read_pickle('../data/simulation_test_schema.pkl')
