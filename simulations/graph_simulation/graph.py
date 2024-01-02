@@ -4,6 +4,8 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import datetime
+import logging
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nodes', type=int, default=10,
@@ -14,6 +16,7 @@ parser.add_argument('--samples', type=int, default=100,
                     help='number of samples')
 args = parser.parse_args()
 
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 class Graph:
     def __init__(self, num_of_nodes):
@@ -42,20 +45,25 @@ class Graph:
             self.gh.nodes[edge[1]]['value'] = result
 
     def print(self):
-        nx.draw(self.gh, pos=nx.spring_layout(self.gh), node_color='r', edge_color='b', with_labels=True)
+        logging.debug("Printing Graph")
+        nx.draw(self.gh, pos=nx.circular_layout(self.gh), node_color='r', edge_color='b', with_labels=True)
         plt.savefig('../../data/graph.png')
+        logging.debug("Graph saved at ../../data/graph.png")
         plt.show()
 
     def get_readings(self):
         data = {node: [self.gh.nodes.get(node).get("value")] for node in self.gh.nodes()}
+        data['timestamp'] = datetime.datetime.now()
         return pd.DataFrame(data)
 
     def reinit(self):
+        logging.debug("Reinitializing node values")
         for idx, node in enumerate(self.node_names):
             _node = self.gh.nodes.get(node)
             _node.update({'value': np.random.normal(self.means[idx], self.sd[idx])})
 
     def generate_random_graph(self):
+        logging.debug("Generating random graph")
         # Add nodes
         for idx, node in enumerate(self.node_names):
             self.gh.add_node(node, value=np.random.normal(self.means[idx], self.sd[idx]))
