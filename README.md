@@ -2,20 +2,7 @@
 ===========================================
 
 ## Abstract
-Causal Structure Discovery (CSD) is the problem of identifying causal relationships from large quantities of data through computational methods. 
-Causality or Causation is defined as a relationship between two events, states, process or objects such that changes in one event, state, process or object lead to changes in another. 
-In general these events, states, process or objects are represented by variables such as X & Y. The key difference between association and causation lies in the potential of confounding. 
-Suppose that no direct causal relationship exists between X and Y but rather a third variable Z causes both X and Y. 
-In this case, even though X and Y are strongly associated, altering X will not lead to changes in Y. Z is called a con founder. 
-In an experimental setup if intervening on a variable X leads changes to Y then causality can be established as X causes Y. 
-However in the real world we cannot intervening on certain systems due to risk, cost or ethical concerns. 
-Such systems include but not limited to climate, environment, biology, social etc. 
-In systems like these studies are conducted purely based on observational data. 
-Extracting causal structure through these observational data while adjusting for confounding has been a challenge for many scientific disciplines. 
-Many machine learning methods have been proposed for this problem but they are largely based on associations. 
-In this article we will explore the methods and challenges involved in CSD and also experiment regression based methods to extract underlying causal structure and infer future states of a given system.
-
-![causal interactions](media/dyari.gif?raw=true "causal interactions")
+In this work, the principles of Causal Structure Discovery (CSD) and deep learning methodologies, traditionally applied to climate systems are extended, to the realm of biodiversity, specifically focusing on species distribution and interaction models. By integrating these models with existing climatic system frameworks, the aim is to uncover causal gateways and pinpoint perturbation points within ecosystems. This integrative approach allows us to unravel the complex interdependencies in ecological networks, highlighting the vulnerability of keystone species to changes in the ecosystem and tracing the propagation of perturbations across various species. This study not only provides a novel perspective on the dynamics of species interactions in response to climatic shifts but also sets a new benchmark in the combined application of CSD and deep learning in ecological research. This work is pivotal in understanding the cascading effects of environmental changes on biodiversity, offering insights into conservation strategies and the sustainable management of ecosystems.
 
 ## Introduction
 Causation is a direct effect between variable X and Y that remains after adjusting for confounding. Confounding can be observed or unobserved. 
