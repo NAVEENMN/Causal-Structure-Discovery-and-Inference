@@ -131,7 +131,7 @@ def create_gif():
     import glob
     from PIL import Image
 
-    fp_in = "/home/tadashi/Documents/plots/timestep_*.png"
+    fp_in = "/home/tadashi/Documents/plots/timestep_*image.png"
     fp_out = "/home/tadashi/Documents/plots/dyari.gif"
 
     model = Model()
@@ -165,12 +165,12 @@ def create_gif():
         pl.set_ylim(-1.0 * 5, 5)
         pl.set_xlim(-1.0 * 5, 5)
         _path = '/home/tadashi/Documents/plots'
-        plt.savefig(f"{_path}/timestep_{time_step}.png")
+        plt.savefig(f"{_path}/timestep_{time_step}image.png")
         plt.clf()
 
     # ref: https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#gif
     _path = '/home/tadashi/Documents/plots'
-    img, *imgs = [Image.open(f"{_path}/timestep_{i}.png") for i in range(0, traj_size)]
+    img, *imgs = [Image.open(f"{_path}/timestep_{i}image.png") for i in range(0, traj_size)]
     img.save(fp=fp_out, format='GIF', append_images=imgs, save_all=True, duration=10, loop=0)
 
     # delete all png files.

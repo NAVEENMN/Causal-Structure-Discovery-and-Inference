@@ -92,7 +92,7 @@ class Simulation:
 
 def main():
     simulation = Simulation()
-    graph = Graph(num_of_nodes=5)
+    graph = Graph(num_of_nodes=6)
     graph.generate_random_graph()
     simulation.add_graph(graph=graph)
 

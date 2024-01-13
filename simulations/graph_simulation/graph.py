@@ -18,11 +18,25 @@ args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
+
+class Node:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+names = dict()
+names[0] = "Coyote"
+names[1] = "Oak"
+names[2] = "Deer"
+names[3] = "Woodpecker"
+names[4] = "Frog"
+names[5] = "Hawk"
+
 class Graph:
     def __init__(self, num_of_nodes):
         self.gh = nx.DiGraph()
         self.num_of_nodes = num_of_nodes
-        self.node_names = [f"node_{i}" for i in range(num_of_nodes)]
+        self.node_names = [f"{names[i]}" for i in range(num_of_nodes)]
         self.means = np.random.random_sample((num_of_nodes,))
         self.sd = np.random.random_sample((num_of_nodes,))
 
@@ -73,4 +87,4 @@ class Graph:
             for j in range(i + 1, self.num_of_nodes):
                 # Add an edge with probability conn
                 if random.random() < args.conn:
-                    self.gh.add_edge(f"node_{i}", f"node_{j}", weight=1.0)
+                    self.gh.add_edge(f"{names[i]}", f"{names[j]}", weight=1.0)
